@@ -16,37 +16,23 @@ export class ThreeJSRenderer extends AbstractRenderer {
         const x = ((screenX - rect.left) / rect.width) * 2 - 1;
         const y = -((screenY - rect.top) / rect.height) * 2 + 1;
         
-        if (this.camera.isOrthographicCamera) {
-            const width = this.camera.right - this.camera.left;
-            const height = this.camera.top - this.camera.bottom;
-            
-            return {
-                x: x * width / 2,
-                y: y * height / 2
-            };
-        }
-        
-        // For perspective camera, use raycasting with validation
+        // Create a ray from the camera
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera);
         
+        // Create a plane at Z=0 for intersection
         const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
         const intersectPoint = new THREE.Vector3();
         
-        const result = raycaster.ray.intersectPlane(plane, intersectPoint);
-        
-        // Check if intersection is valid
-        if (!result || intersectPoint.z !== 0) {
-            console.warn('Invalid ray-plane intersection', { x, y, result });
-            // Return last known good position or center
-            return { x: 0, y: 0 };
-        }
+        // Find where the ray intersects the Z=0 plane
+        raycaster.ray.intersectPlane(plane, intersectPoint);
         
         return { 
             x: intersectPoint.x, 
             y: intersectPoint.y 
         };
     }
+
     
     getCanvas() {
         return this.renderer.domElement;
