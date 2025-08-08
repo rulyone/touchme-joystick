@@ -131,7 +131,7 @@
             0.1, 1000
         );
         //uiCamera.position.z = 100;
-        uiCamera.position.set(0, -100, 100); // Move camera back and up
+        uiCamera.position.set(0, -100, window.innerHeight/2); // Move camera back and up
         uiCamera.lookAt(0, 0, 0); // Look at center
 
         // Add lights to UI scene
@@ -360,7 +360,7 @@
             uiCamera.updateProjectionMatrix();
 
             // Re-position camera to maintain the tilt
-            uiCamera.position.set(0, -100, 100);
+            uiCamera.position.set(0, -100, height/2);
             uiCamera.lookAt(0, 0, 0);
 
             // Update control positions based on new dimensions
