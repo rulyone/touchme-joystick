@@ -4,7 +4,7 @@ Unified input handling for web games - supports touch controls, physical gamepad
 
 You can create your Virtual Touch Joysticks and buttons on Canvas HTML, ThreeJS scenes, or you can customize it further for any other rendering library by simply extending AbstractRendering class
 
-Here's a Demo using ThreeJS using 2 cameras, a Perspective camera to show the world (with Orbital Controls) and a Ortographic camera to show the Virtual Joystick.
+Here's a Demo using ThreeJS using 2 cameras, a Perspective camera to show the world (with Orbital Controls) and a Ortographic camera to show the Virtual Joystick. Orbital controls are disabled when using the Virtual Touch buttons/joystick for a better experience.
 
 [**PLAY IT YOURSELF!**](https://quantumentangled.dev/touchme-joystick/joythreejs3Dper.html)
 
