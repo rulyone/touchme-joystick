@@ -8,11 +8,13 @@ Here's a Demo using ThreeJS using 2 cameras, a Perspective camera to show the wo
 
 [**PLAY IT YOURSELF!**](https://quantumentangled.dev/touchme-joystick/joythreejs3Dper.html)
 
-![Demo of TouchMeJoystick](demo_with_orbital_control_support.png?raw=true)
+<img src="demo_with_orbital_control_support.png?raw=true" width="20%" alt="Demo of TouchMeJoystick">
 
 You can view the source code of the Demo at [joythreejs3Dper.html](joythreejs3Dper.html)
 
 You also have other Demos in joycanvasmin.html (supports multiplayer), joythreejsmin.html (only using an Ortographic camera) and joythreejs3Dmin.html (if you are only interested in the pieces that creates a touch joystick)
+
+<img src="demo_custom_layout.png?raw=true" width="20%" alt="Custom layout demo">
 
 ## Features
 
