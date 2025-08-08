@@ -56,7 +56,7 @@
         import { ThreeJSRenderer } from './src/input/renderers/ThreeJSRenderer3DPerspective.js';
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
+        
         const output = document.getElementById('output');
         const container = document.getElementById('threejs-container');
 
@@ -91,6 +91,7 @@
                     message.innerHTML = `
                         <h2>WebGL Not Enabled</h2>
                         <p>Your browser supports WebGL but it is disabled or unavailable.</p>
+                        <p>(If using Mac/iOS, check if Lockdown Mode is enabled for this site.)</p>
                         <p>Find out how to enable it at 
                         <a href="https://get.webgl.org/troubleshooting/" style="color: #000">
                         get.webgl.org/troubleshooting</a></p>
@@ -210,16 +211,16 @@
         
         // Create joystick on the left
         const width = window.innerWidth - 40;
-        const height = 200;
+        const height = 400;
 
         const joystick = touchInput.createJoystick({
-            position: { x: -width * 0.3, y: 0 },
+            position: { x: -width * 0.3, y: -height/2 + 80 },
             size: 60,
             id: 'joystick'
         });
 
         const buttonsCenterX = width * 0.25;
-        const buttonsCenterY = 0;
+        const buttonsCenterY = -height/2 + 80;
         
         // Create buttons in a diamond pattern on the right
         const buttonRadius = 60;
@@ -363,13 +364,13 @@
             uiCamera.lookAt(0, 0, 0);
 
             // Update control positions based on new dimensions
-            joystick.position = { x: -frustumWidth * 0.3, y: 0 };
+            joystick.position = { x: -frustumWidth * 0.3, y: -frustumHeight/2 + 80 };
             
             const buttonsCenterX = frustumWidth * 0.25;
-            buttonA.position = { x: buttonsCenterX, y: -2.2 * thumbRadius };
-            buttonB.position = { x: buttonsCenterX + 2.2 * thumbRadius, y: 0 };
-            buttonX.position = { x: buttonsCenterX - 2.2 * thumbRadius, y: 0 };
-            buttonY.position = { x: buttonsCenterX, y: 2.2 * thumbRadius };
+            buttonA.position = { x: buttonsCenterX, y: buttonsCenterY - 2.2 * thumbRadius };
+            buttonB.position = { x: buttonsCenterX + 2.2 * thumbRadius, y: buttonsCenterY };
+            buttonX.position = { x: buttonsCenterX - 2.2 * thumbRadius, y: buttonsCenterY };
+            buttonY.position = { x: buttonsCenterX, y: buttonsCenterY + 2.2 * thumbRadius };
             
         };
 
