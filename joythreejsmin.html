@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title>Three.js Input System Demo</title>
+    <style>
+        html { overflow-y: scroll; }
+        body { margin: 20px; }
+        #output {
+            font-family: monospace;
+            font-size: 11px;
+            background: #f5f5f5;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        #output td { padding: 2px 8px; }
+        #output .active { background: #90EE90; }
+        #output .pressed { background: #FFB6C1; }
+        canvas { 
+            border: 1px solid black; 
+            touch-action: none;
+            display: block;
+            margin: 10px 0;
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.179.1/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.179.1/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <h2>Three.js Touch Input System Demo</h2>
+    <pre id="output">Loading...</pre>
+    <div id="threejs-container"></div>
+
+    <script type="module">
+        import { InputManager, StandardMapping } from './src/input/core/InputManager.js';
+        import { ThreeJSRenderer } from './src/input/renderers/ThreeJSRenderer.js';
+        import * as THREE from 'three';
+        
+        const output = document.getElementById('output');
+        const container = document.getElementById('threejs-container');
+        
+        // Setup Three.js
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f0f0);
+        
+        const camera = new THREE.OrthographicCamera(
+            window.innerWidth / -2, window.innerWidth / 2,
+            window.innerHeight / 2, window.innerHeight / -2,
+            0.1, 1000
+        );
+        camera.position.z = 100;
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth - 40, 200);
+        container.appendChild(renderer.domElement);
+        
+        // Create input system
+        const inputManager = new InputManager();
+        const threejsRenderer = new ThreeJSRenderer(scene, camera, renderer);
+        
+        const thumbRadius = 20;
+        const touchInput = inputManager.createOnScreenDevice({ 
+            renderer: threejsRenderer, 
+            thumbRadius: thumbRadius
+        });
+        
+        // Create controls
+        const width = window.innerWidth - 40;
+        const height = 200;
+        
+        const joystick = touchInput.createJoystick({
+            position: { x: -width * 0.3, y: 0 },
+            size: 60,
+            id: 'joystick'
+        });
+
+        const buttonsCenterX = width * 0.25;
+        const buttonsCenterY = 0;
+        
+        const buttonA = touchInput.createButton({
+            position: { x: buttonsCenterX, y: buttonsCenterY - 2.2 * thumbRadius },
+            size: thumbRadius * 1.5,
+            buttonIndex: 0,
+            label: 'A',
+            labelColor: '#000000',
+            color: 0xff0000,
+            id: 'buttonA'
+        });
+        
+        const buttonB = touchInput.createButton({
+            position: { x: buttonsCenterX + 2.2 * thumbRadius, y: buttonsCenterY },
+            size: thumbRadius * 1.5,
+            buttonIndex: 1,
+            label: 'B',
+            color: 0x00ff00,
+            labelColor: '#000000',
+            id: 'buttonB'
+        });
+
+        const buttonX = touchInput.createButton({
+            position: { x: buttonsCenterX - 2.2 * thumbRadius, y: buttonsCenterY },
+            size: thumbRadius * 1.5,
+            buttonIndex: 2,
+            label: 'X',
+            color: 0x0000ff,
+            labelColor: '#000000',
+            id: 'buttonX'
+        });
+        
+        const buttonY = touchInput.createButton({
+            position: { x: buttonsCenterX, y: buttonsCenterY + 2.2 * thumbRadius },
+            size: thumbRadius * 1.5,
+            buttonIndex: 3,
+            label: 'Y',
+            color: 0xffff00,
+            labelColor: '#000000',
+            id: 'buttonY'
+        });
+
+        // Listen for gamepad connections
+        inputManager.on('gamepadconnected', (event) => {
+            console.log('Gamepad connected:', event.device.id);
+            
+            // Optionally hide touch controls when gamepad is connected
+            // this.hideTouchControls();
+            
+            // Test vibration
+            event.device.vibrate(200, 0.5, 1.0);
+        });
+        
+        inputManager.on('gamepaddisconnected', (event) => {
+            console.log('Gamepad disconnected:', event.device.id);
+            
+            // Optionally show touch controls when gamepad is disconnected
+            // this.showTouchControls();
+        });
+
+        // Handle resize
+        const resize = () => {
+            const width = window.innerWidth - 40;
+            const height = 200;
+            
+            renderer.setSize(width, height);
+            camera.left = width / -2;
+            camera.right = width / 2;
+            camera.top = height / 2;
+            camera.bottom = height / -2;
+            camera.updateProjectionMatrix();
+            
+            // Update control positions
+            joystick.position = { x: -width * 0.3, y: 0 };
+            
+            const buttonsCenterX = width * 0.25;
+            buttonA.position = { x: buttonsCenterX, y: -2.2 * thumbRadius };
+            buttonB.position = { x: buttonsCenterX + 2.2 * thumbRadius, y: 0 };
+            buttonX.position = { x: buttonsCenterX - 2.2 * thumbRadius, y: 0 };
+            buttonY.position = { x: buttonsCenterX, y: 2.2 * thumbRadius };
+        };
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            inputManager.update();
+            renderer.render(scene, camera);
+            
+            const stick = inputManager.getStick('LEFT');
+            /**
+             * Note: Physical controllers may have slightly different gate shapes.
+             * For consistent behavior across all input types, consider normalizing
+             * stick magnitude to 1.0 in your game code.
+             */
+            const joystickMagnitude = Math.sqrt(stick.x * stick.x + stick.y * stick.y);
+            
+            output.innerHTML = `
+                <table>
+                <tr>
+                    <td>Joystick:</td>
+                    <td class="${Math.abs(stick.x) > 0.1 ? 'active' : ''}">X: ${stick.x.toFixed(2)}</td>
+                    <td class="${Math.abs(stick.y) > 0.1 ? 'active' : ''}">Y: ${stick.y.toFixed(2)}</td>
+                    <td class="${joystickMagnitude > 0.1 ? 'active' : ''}">Magnitude: ${(joystickMagnitude * 100).toFixed(0)}%</td>
+                    <td>Touches: ${touchInput.activeTouches.size}</td>
+                </tr>
+                <tr>
+                    <td>Buttons:</td>
+                    <td class="${inputManager.isButtonPressed(StandardMapping.buttons.A) ? 'pressed' : ''}">A: ${inputManager.isButtonPressed(StandardMapping.buttons.A) ? '✅' : '❌'}</td>
+                    <td class="${inputManager.isButtonPressed(StandardMapping.buttons.B) ? 'pressed' : ''}">B: ${inputManager.isButtonPressed(StandardMapping.buttons.B) ? '✅' : '❌'}</td>
+                    <td class="${inputManager.isButtonPressed(StandardMapping.buttons.X) ? 'pressed' : ''}">X: ${inputManager.isButtonPressed(StandardMapping.buttons.X) ? '✅' : '❌'}</td>
+                    <td class="${inputManager.isButtonPressed(StandardMapping.buttons.Y) ? 'pressed' : ''}">Y: ${inputManager.isButtonPressed(StandardMapping.buttons.Y) ? '✅' : '❌'}</td>
+                </tr>
+                </table>`;
+
+        }
+        
+        resize();
+        window.addEventListener('resize', resize);
+        animate();
+    </script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title>Two-Player Input System Demo</title>
+    <style>
+        html { overflow-y: scroll; }
+        body { margin: 20px; font-family: Arial, sans-serif; }
+        h2 { margin-bottom: 10px; }
+        h3 { margin: 15px 0 5px 0; color: #333; }
+        #output {
+            font-family: monospace;
+            font-size: 11px;
+            background: #f5f5f5;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        #output td { padding: 2px 8px; }
+        #output .active { background: #90EE90; }
+        #output .pressed { background: #FFB6C1; }
+        canvas { 
+            border: 1px solid black; 
+            touch-action: none;
+            display: block;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h2>Two-Player Input System Demo</h2>
+    <pre id="output">Loading...</pre>
+    
+    <h3>Player 1</h3>
+    <canvas id="canvas" style="border: 2px solid #ff0000;"></canvas>
+    
+    <h3>Player 2</h3>
+    <canvas id="canvas2" style="border: 2px solid #0000ff;"></canvas>
+
+    <script type="module">
+        import { InputManager, StandardMapping } from './src/input/core/InputManager.js';
+        import { Canvas2DRenderer } from './src/input/renderers/Canvas2DRenderer.js';
+        
+        // Setup canvases
+        const canvas = document.getElementById('canvas');
+        const canvas2 = document.getElementById('canvas2');
+        const output = document.getElementById('output');
+        
+        // Create input system
+        const inputManager = new InputManager();
+        const thumbRadius = 20;
+        
+        // Player 1 setup
+        const renderer1 = new Canvas2DRenderer(canvas);
+        const device1 = inputManager.createOnScreenDevice({ renderer: renderer1, thumbRadius: thumbRadius });
+        inputManager.assignDeviceToPlayer(device1.id, 0); // Assign as Player 1
+        
+        // Player 1 controls
+        const p1_joystick = device1.createJoystick({
+            position: { x: canvas.width * 0.2, y: canvas.height * 0.5 },
+            size: 60,
+            id: 'p1_joystick',
+            axisX: 0,
+            axisY: 1
+        });
+
+        const buttonsCenterX = canvas.width * 0.75;
+        const buttonsCenterY = canvas.height * 0.5;
+        
+        const p1_buttonA = device1.createButton({
+            position: { x: buttonsCenterX, y: buttonsCenterY + 2.2 * thumbRadius },
+            size: thumbRadius * 1.5,
+            buttonIndex: StandardMapping.buttons.A,
+            label: 'A',
+            labelColor: '#000000',
+            color: '#ff0000',
+            id: 'p1_buttonA'
+        });
+        
+        const p1_buttonB = device1.createButton({
+            position: { x: buttonsCenterX + 2.2 * thumbRadius, y: buttonsCenterY },
+            size: thumbRadius * 1.5,
+            buttonIndex: StandardMapping.buttons.B,
+            label: 'B',
+            color: '#00ff00',
+            labelColor: '#000000',
+            id: 'p1_buttonB'
+        });
+
+        const p1_buttonX = device1.createButton({
+            position: { x: buttonsCenterX - 2.2 * thumbRadius, y: buttonsCenterY },
+            size: thumbRadius * 1.5,
+            buttonIndex: StandardMapping.buttons.X,
+            label: 'X',
+            color: '#0000ff',
+            labelColor: '#000000',
+            id: 'p1_buttonX'
+        });
+        
+        const p1_buttonY = device1.createButton({
+            position: { x: buttonsCenterX, y: buttonsCenterY - 2.2 * thumbRadius },
+            size: thumbRadius * 1.5,
+            buttonIndex: StandardMapping.buttons.Y,
+            label: 'Y',
+            color: '#ffff00',
+            labelColor: '#000000',
+            id: 'p1_buttonY'
+        });
+
+        // Player 2 setup
+        const renderer2 = new Canvas2DRenderer(canvas2);
+        const device2 = inputManager.createOnScreenDevice({ renderer: renderer2, thumbRadius: thumbRadius });
+        inputManager.assignDeviceToPlayer(device2.id, 1); // Assign as Player 2
+
+        const p2_buttonA = device2.createButton({
+            position: { x: 100, y: 50 },
+            size: thumbRadius * 1.5,
+            buttonIndex: StandardMapping.buttons.A,
+            label: 'A',
+            labelColor: '#000000',
+            color: '#ff0000',
+            id: 'p2_buttonA'
+        });
+
+        const p2_buttonB = device2.createButton({
+            position: { x: 100, y: 120 },
+            size: thumbRadius * 1.5,
+            buttonIndex: StandardMapping.buttons.B,
+            label: 'B',
+            color: '#00ff00',
+            labelColor: '#000000',
+            id: 'p2_buttonB'
+        });
+
+        const p2_buttonX = device2.createButton({
+            position: { x: 300, y: 50 },
+            size: thumbRadius * 1.5,
+            buttonIndex: StandardMapping.buttons.X,
+            label: 'X',
+            color: '#0000ff',
+            labelColor: '#000000',
+            id: 'p2_buttonX'
+        });
+
+        const p2_buttonY = device2.createButton({
+            position: { x: 300, y: 120 },
+            size: thumbRadius * 1.5,
+            buttonIndex: StandardMapping.buttons.Y,
+            label: 'Y',
+            color: '#ffff00',
+            labelColor: '#000000',
+            id: 'p2_buttonY'
+        });
+        
+        // Size canvases
+        const resize = () => {
+            // Player 1 canvas
+            canvas.width = window.innerWidth - 40;
+            canvas.height = thumbRadius * 10;
+
+            const buttonsCenterX = canvas.width * 0.75;
+            const buttonsCenterY = canvas.height * 0.5;
+
+            // Update P1 control positions
+            p1_joystick.position = { x: canvas.width * 0.2, y: canvas.height * 0.5 };
+            p1_buttonA.position = { x: buttonsCenterX, y: buttonsCenterY + 2.2 * thumbRadius };
+            p1_buttonB.position = { x: buttonsCenterX + 2.2 * thumbRadius, y: buttonsCenterY };
+            p1_buttonX.position = { x: buttonsCenterX - 2.2 * thumbRadius, y: buttonsCenterY };
+            p1_buttonY.position = { x: buttonsCenterX, y: buttonsCenterY - 2.2 * thumbRadius };
+
+            // Player 2 canvas
+            canvas2.width = window.innerWidth - 40;
+            canvas2.height = 200;
+
+            const leftX = canvas2.width * 0.2;
+            const rightX = canvas2.width * 0.8;
+
+            // Update P2 control positions
+            p2_buttonA.position = { x: leftX + 30, y: 60 };
+            p2_buttonB.position = { x: leftX, y: 60 + 3 * thumbRadius };
+            p2_buttonX.position = { x: rightX - 30, y: 60 };
+            p2_buttonY.position = { x: rightX, y: 60 + 3 * thumbRadius };
+
+            // Force renderers to redraw
+            renderer1.render();
+            renderer2.render();
+        };
+
+        // Listen to player-specific events
+        inputManager.on('buttondown', (event) => {
+            const playerNum = event.playerIndex !== null ? event.playerIndex + 1 : '?';
+        });
+
+        // Display data
+        function update() {
+            inputManager.update();
+
+            // Get player-specific inputs
+            const p1_stick = inputManager.getStickForPlayer('LEFT', 0);
+            /**
+             * Note: Physical controllers may have slightly different gate shapes.
+             * For consistent behavior across all input types, consider normalizing
+             * stick magnitude to 1.0 in your game code.
+             */
+            const p1_joystickMagnitude = Math.sqrt(p1_stick.x * p1_stick.x + p1_stick.y * p1_stick.y);
+
+            const anyStick = inputManager.getStick('LEFT');
+            /**
+             * Note: Physical controllers may have slightly different gate shapes.
+             * For consistent behavior across all input types, consider normalizing
+             * stick magnitude to 1.0 in your game code.
+             */
+            const anyJoystickMagnitude = Math.sqrt(anyStick.x * anyStick.x + anyStick.y * anyStick.y);
+            
+            output.innerHTML = `
+                <table>
+                <tr>
+                    <td colspan="6"><strong>Player 1</strong></td>
+                </tr>
+                <tr>
+                    <td>Joystick:</td>
+                    <td class="${Math.abs(p1_stick.x) > 0.1 ? 'active' : ''}">X: ${p1_stick.x.toFixed(2)}</td>
+                    <td class="${Math.abs(p1_stick.y) > 0.1 ? 'active' : ''}">Y: ${p1_stick.y.toFixed(2)}</td>
+                    <td class="${p1_joystickMagnitude > 0.1 ? 'active' : ''}">F: ${p1_joystickMagnitude.toFixed(2)}</td>
+                    <td>Touches: ${device1.activeTouches.size}</td>
+                </tr>
+                <tr>
+                    <td>Buttons:</td>
+                    <td class="${inputManager.isButtonPressedForPlayer(StandardMapping.buttons.A, 0) ? 'pressed' : ''}">A: ${inputManager.isButtonPressedForPlayer(StandardMapping.buttons.A, 0) ? '✅' : '❌'}</td>
+                    <td class="${inputManager.isButtonPressedForPlayer(StandardMapping.buttons.B, 0) ? 'pressed' : ''}">B: ${inputManager.isButtonPressedForPlayer(StandardMapping.buttons.B, 0) ? '✅' : '❌'}</td>
+                    <td class="${inputManager.isButtonPressedForPlayer(StandardMapping.buttons.X, 0) ? 'pressed' : ''}">X: ${inputManager.isButtonPressedForPlayer(StandardMapping.buttons.X, 0) ? '✅' : '❌'}</td>
+                    <td class="${inputManager.isButtonPressedForPlayer(StandardMapping.buttons.Y, 0) ? 'pressed' : ''}">Y: ${inputManager.isButtonPressedForPlayer(StandardMapping.buttons.Y, 0) ? '✅' : '❌'}</td>
+                </tr>
+                <tr>
+                    <td colspan="6"><strong>Player 2</strong></td>
+                </tr>
+                <tr>
+                    <td>Buttons:</td>
+                    <td class="${inputManager.isButtonPressedForPlayer(StandardMapping.buttons.A, 1) ? 'pressed' : ''}">A: ${inputManager.isButtonPressedForPlayer(StandardMapping.buttons.A, 1) ? '✅' : '❌'}</td>
+                    <td class="${inputManager.isButtonPressedForPlayer(StandardMapping.buttons.B, 1) ? 'pressed' : ''}">B: ${inputManager.isButtonPressedForPlayer(StandardMapping.buttons.B, 1) ? '✅' : '❌'}</td>
+                    <td class="${inputManager.isButtonPressedForPlayer(StandardMapping.buttons.X, 1) ? 'pressed' : ''}">X: ${inputManager.isButtonPressedForPlayer(StandardMapping.buttons.X, 1) ? '✅' : '❌'}</td>
+                    <td class="${inputManager.isButtonPressedForPlayer(StandardMapping.buttons.Y, 1) ? 'pressed' : ''}">Y: ${inputManager.isButtonPressedForPlayer(StandardMapping.buttons.Y, 1) ? '✅' : '❌'}</td>
+                    <td>Touches: ${device2.activeTouches.size}</td>
+                </tr>
+                <tr>
+                    <td colspan="6"><strong>(Any Player)</strong></td>
+                </tr>
+                <tr>
+                    <td>Joystick:</td>
+                    <td class="${Math.abs(anyStick.x) > 0.1 ? 'active' : ''}">X: ${anyStick.x.toFixed(2)}</td>
+                    <td class="${Math.abs(anyStick.y) > 0.1 ? 'active' : ''}">Y: ${anyStick.y.toFixed(2)}</td>
+                    <td class="${anyJoystickMagnitude > 0.1 ? 'active' : ''}">F: ${anyJoystickMagnitude.toFixed(2)}</td>
+                    <td>Touches: ${device1.activeTouches.size + device2.activeTouches.size}</td>
+                </tr>
+                <tr>
+                    <td>Buttons:</td>
+                    <td class="${inputManager.isButtonPressed(StandardMapping.buttons.A) ? 'pressed' : ''}">A: ${inputManager.isButtonPressed(StandardMapping.buttons.A) ? '✅' : '❌'}</td>
+                    <td class="${inputManager.isButtonPressed(StandardMapping.buttons.B) ? 'pressed' : ''}">B: ${inputManager.isButtonPressed(StandardMapping.buttons.B) ? '✅' : '❌'}</td>
+                    <td class="${inputManager.isButtonPressed(StandardMapping.buttons.X) ? 'pressed' : ''}">X: ${inputManager.isButtonPressed(StandardMapping.buttons.X) ? '✅' : '❌'}</td>
+                    <td class="${inputManager.isButtonPressed(StandardMapping.buttons.Y) ? 'pressed' : ''}">Y: ${inputManager.isButtonPressed(StandardMapping.buttons.Y) ? '✅' : '❌'}</td>
+                </tr>
+                </table>`;
+
+            requestAnimationFrame(update);
+        }
+        
+        resize();
+        window.addEventListener('resize', resize);
+        update();
+    </script>
+</body>
+</html>
