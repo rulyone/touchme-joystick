@@ -43,19 +43,102 @@ export class OnScreenDevice extends InputDevice {
     }
 
     _setupEventListeners() {
-        const canvas = this.renderer.getCanvas();
+        // Better detection for CompositeCanvasRenderer
+        if (this.renderer.getAllCanvases) {
+            // CompositeCanvasRenderer - add listeners to all canvases
+            const canvases = this.renderer.getAllCanvases();
+            canvases.forEach(canvas => {
+                this._addCanvasListeners(canvas);
+            });
+        } else if (this.renderer.getCanvas) {
+            // Single canvas renderer
+            const canvas = this.renderer.getCanvas();
+            this._addCanvasListeners(canvas);
+        } else {
+            console.error('Renderer does not provide canvas access methods');
+        }
+    }
 
-        if (!this._boundHandleTouchStart) {
-            this._boundHandleTouchStart = this._handleTouchStart.bind(this);
-            this._boundHandleTouchMove = this._handleTouchMove.bind(this);
-            this._boundHandleTouchEnd = this._handleTouchEnd.bind(this);
+    _addCanvasListeners(canvas) {
+        if (!canvas) {
+            console.error('Canvas is null or undefined');
+            return;
         }
 
-        canvas.addEventListener('touchstart', this._boundHandleTouchStart, { passive: false });
-        canvas.addEventListener('touchmove', this._boundHandleTouchMove, { passive: false });
-        canvas.addEventListener('touchend', this._boundHandleTouchEnd, { passive: false });
-        canvas.addEventListener('touchcancel', this._boundHandleTouchEnd, { passive: false });
+        // Create bound handlers if they don't exist
+        if (!this._boundHandlers) {
+            this._boundHandlers = {
+                touchStart: this._handleTouchStart.bind(this),
+                touchMove: this._handleTouchMove.bind(this),
+                touchEnd: this._handleTouchEnd.bind(this),
+                mouseDown: this._handleMouseDown.bind(this),
+                mouseMove: this._handleMouseMove.bind(this),
+                mouseUp: this._handleMouseUp.bind(this)
+            };
+        }
+
+        // Touch events
+        canvas.addEventListener('touchstart', this._boundHandlers.touchStart, { passive: false });
+        canvas.addEventListener('touchmove', this._boundHandlers.touchMove, { passive: false });
+        canvas.addEventListener('touchend', this._boundHandlers.touchEnd, { passive: false });
+        canvas.addEventListener('touchcancel', this._boundHandlers.touchEnd, { passive: false });
+        
+        // Only mousedown on canvas - move and up will be handled at document level
+        canvas.addEventListener('mousedown', this._boundHandlers.mouseDown);
     }
+
+    _handleMouseDown(e) {
+        const touch = {
+            identifier: 'mouse',
+            clientX: e.clientX,
+            clientY: e.clientY,
+            target: e.target
+        };
+        this._handleTouchStart({ 
+            preventDefault: () => e.preventDefault(), 
+            changedTouches: [touch],
+            target: e.target
+        });
+        
+        // Add document-level listeners for mouse move and up
+        document.addEventListener('mousemove', this._boundHandlers.mouseMove);
+        document.addEventListener('mouseup', this._boundHandlers.mouseUp);
+    }
+
+
+    _handleMouseMove(e) {
+        if (!this.activeTouches.has('mouse')) return;
+        
+        const touch = {
+            identifier: 'mouse',
+            clientX: e.clientX,
+            clientY: e.clientY,
+            target: e.target
+        };
+        this._handleTouchMove({ 
+            preventDefault: () => e.preventDefault(), 
+            changedTouches: [touch],
+            target: e.target
+        });
+    }
+
+
+    _handleMouseUp(e) {
+        const touch = { 
+            identifier: 'mouse',
+            target: e.target
+        };
+        this._handleTouchEnd({ 
+            preventDefault: () => e.preventDefault(), 
+            changedTouches: [touch],
+            target: e.target
+        });
+        
+        // Remove document-level listeners
+        document.removeEventListener('mousemove', this._boundHandlers.mouseMove);
+        document.removeEventListener('mouseup', this._boundHandlers.mouseUp);
+    }
+
 
     addControl(control) {
         if (this.controls.has(control.id)) {
@@ -217,22 +300,6 @@ export class OnScreenDevice extends InputDevice {
         }
     }
 
-    createVisualButton(options) {
-        const button = new ButtonVisualControl({
-            renderer: this.renderer,
-            ...options
-        });
-        return this.addControl(button);
-    }
-
-    createVisualJoystick(options) {
-        const joystick = new JoystickVisualControl({
-            renderer: this.renderer,
-            ...options
-        });
-        return this.addControl(joystick);
-    }
-
     dispose() {
         // Clean up all controls
         for (const control of this.controls.values()) {
@@ -240,13 +307,30 @@ export class OnScreenDevice extends InputDevice {
         }
         this.controls.clear();
 
-        // Remove event listeners
-        const canvas = this.renderer.getCanvas();
-        canvas.removeEventListener('touchstart', this._boundHandleTouchStart);
-        canvas.removeEventListener('touchmove', this._boundHandleTouchMove);
-        canvas.removeEventListener('touchend', this._boundHandleTouchEnd);
-        canvas.removeEventListener('touchcancel', this._boundHandleTouchEnd);
+        // Remove event listeners from all canvases
+        if (this.renderer.getAllCanvases) {
+            const canvases = this.renderer.getAllCanvases();
+            canvases.forEach(canvas => {
+                this._removeCanvasListeners(canvas);
+            });
+        } else if (this.renderer.getCanvas) {
+            const canvas = this.renderer.getCanvas();
+            this._removeCanvasListeners(canvas);
+        }
 
         this.disconnect();
+    }
+
+    _removeCanvasListeners(canvas) {
+        if (!canvas || !this._boundHandlers) return;
+
+        canvas.removeEventListener('touchstart', this._boundHandlers.touchStart);
+        canvas.removeEventListener('touchmove', this._boundHandlers.touchMove);
+        canvas.removeEventListener('touchend', this._boundHandlers.touchEnd);
+        canvas.removeEventListener('touchcancel', this._boundHandlers.touchEnd);
+        canvas.removeEventListener('mousedown', this._boundHandlers.mouseDown);
+        canvas.removeEventListener('mousemove', this._boundHandlers.mouseMove);
+        canvas.removeEventListener('mouseup', this._boundHandlers.mouseUp);
+        canvas.removeEventListener('mouseleave', this._boundHandlers.mouseUp);
     }
 }

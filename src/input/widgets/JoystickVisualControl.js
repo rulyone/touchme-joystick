@@ -66,12 +66,21 @@ export class JoystickVisualControl extends VisualControl {
                 color: 0x666666,
                 opacity: 0.7
             });
-
+            this.visual = this.baseVisual;
         }
     }
 
     handleTouchStart(touch, screenX, screenY) {
         this.touchId = touch.identifier;
+
+        if (this.renderer.visualToCanvas) {
+            this.myCanvasId = this.renderer.visualToCanvas.get(this.baseVisual?.id);
+            
+            // Find and store the canvas data for coordinate conversion
+            if (this.renderer.canvases && this.myCanvasId) {
+                this.myCanvasData = this.renderer.canvases.get(this.myCanvasId);
+            }
+        }
 
         const worldPos = this.renderer.screenToWorld(screenX, screenY);
         const offsetX = worldPos.x - this.position.x;
@@ -149,7 +158,22 @@ export class JoystickVisualControl extends VisualControl {
     handleTouchMove(touch, screenX, screenY) {
         if (this.touchId !== touch.identifier) return;
 
-        const worldPos = this.renderer.screenToWorld(screenX, screenY);
+        let worldPos;
+
+        // If we have canvas data, always use it for coordinate conversion
+        if (this.myCanvasData) {
+            const rect = this.myCanvasData.canvas.getBoundingClientRect();
+            const scaleX = this.myCanvasData.canvas.width / rect.width;
+            const scaleY = this.myCanvasData.canvas.height / rect.height;
+            
+            worldPos = {
+                x: (screenX - rect.left) * scaleX,
+                y: (screenY - rect.top) * scaleY
+            };
+        } else {
+            worldPos = this.renderer.screenToWorld(screenX, screenY);
+        }
+
         const offsetX = worldPos.x - this.position.x;
         const offsetY = worldPos.y - this.position.y;
 
@@ -225,18 +249,45 @@ export class JoystickVisualControl extends VisualControl {
         }
     }
 
-    updateVisualState() {
-        if (this.touchId !== null) return;
-
-        if (this.parentDevice) {
-            const xValue = this.parentDevice.axes[this.axisX] || 0;
-            const yValue = this.parentDevice.axes[this.axisY] || 0;
-            
-            this.currentValue.x = xValue;
-            this.currentValue.y = yValue;
-            this._updateKnobPosition();
-
+    updateVisualState(visualMode = 'touch-only', playerIndex = 0) {
+        if (this.touchId !== null) return; // Don't update if being touched
+        
+        let x = 0, y = 0;
+        
+        switch(visualMode) {
+            case 'all-inputs':
+                // Show input from ANY device
+                if (this.inputManager) {
+                    const stick = this.axisX === 0 ? 'LEFT' : 'RIGHT';
+                    const stickValue = this.inputManager.getStick(stick);
+                    x = stickValue.x;
+                    y = -stickValue.y;
+                }
+                break;
+                
+            case 'player-device':
+                // Show input from specific player's device
+                if (this.inputManager) {
+                    const stick = this.axisX === 0 ? 'LEFT' : 'RIGHT';
+                    const stickValue = this.inputManager.getStickForPlayer(stick, playerIndex);
+                    x = stickValue.x;
+                    y = -stickValue.y;
+                }
+                break;
+                
+            case 'touch-only':
+            default:
+                // Only show touch input (use parentDevice state)
+                if (this.parentDevice) {
+                    x = this.parentDevice.axes[this.axisX] || 0;
+                    y = this.parentDevice.axes[this.axisY] || 0;
+                }
+                break;
         }
+        
+        this.currentValue.x = x;
+        this.currentValue.y = y;
+        this._updateKnobPosition();
     }
 
     dispose() {

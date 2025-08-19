@@ -17,7 +17,11 @@ export class ThreeJSRenderer extends AbstractRenderer {
         const vector = new THREE.Vector3(x, y, 0);
         vector.unproject(this.camera);
         
-        return { x: vector.x, y: vector.y };
+        return { x: vector.x, y: vector.y, canvasId: 'three' };
+    }
+
+    getAllCanvases() {
+        return [this.renderer.domElement];
     }
     
     getCanvas() {

@@ -3,8 +3,10 @@ import { Button } from "../core/Button.js";
 
 // Gamepad Input Device
 export class GamepadDevice extends InputDevice {
-    constructor(gamepad) {
+    constructor(gamepad, options) {
         super('gamepad-' + gamepad.index);
+
+        options = options || {};
         
         this.gamepadIndex = gamepad.index;
         this.gamepad = gamepad;
@@ -22,9 +24,9 @@ export class GamepadDevice extends InputDevice {
         this._updateFromGamepad();
         
         // Configuration
-        this.deadzone = 0.1;
-        this.invertYAxis = true;
-        this.axisThreshold = 0.5; // For treating axes as buttons (triggers)
+        this.deadzone = options.deadzone || 0.1;
+        this.invertYAxis = options.invertYAxis !== undefined ? options.invertYAxis : true; // Default to true
+        this.axisThreshold = options.axisThreshold || 0.5; // For treating axes as buttons (triggers)
     }
     
     _updateFromGamepad() {

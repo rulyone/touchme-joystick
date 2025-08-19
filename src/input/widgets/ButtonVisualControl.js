@@ -42,12 +42,36 @@ export class ButtonVisualControl extends VisualControl {
         }
     }
 
-    updateVisualState() {
-        if (this.parentDevice) {
-            const isPressed = this.parentDevice.buttons[this.buttonIndex]?.pressed || false;
-            this.isActive = isPressed;
-            this.setHighlight(isPressed);
+    updateVisualState(visualMode = 'touch-only', playerIndex = 0) {
+        if (this.touchId !== null) return; // Don't update if being touched
+        
+        let isPressed = false;
+        
+        switch(visualMode) {
+            case 'all-inputs':
+                // Show input from ANY device
+                if (this.inputManager) {
+                    isPressed = this.inputManager.isButtonPressed(this.buttonIndex);
+                }
+                break;
+                
+            case 'player-device':
+                // Show input from specific player's device
+                if (this.inputManager) {
+                    isPressed = this.inputManager.isButtonPressedForPlayer(this.buttonIndex, playerIndex);
+                }
+                break;
+                
+            case 'touch-only':
+            default:
+                // Only show touch input
+                if (this.parentDevice) {
+                    isPressed = this.parentDevice.buttons[this.buttonIndex]?.pressed || false;
+                }
+                break;
         }
+        
+        this.setHighlight(isPressed);
     }
 
 }

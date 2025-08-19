@@ -16,7 +16,8 @@ export class Canvas2DRenderer extends AbstractRenderer {
 
         return {
             x: (screenX - rect.left) * scaleX,
-            y: (screenY - rect.top) * scaleY
+            y: (screenY - rect.top) * scaleY,
+            canvasId: 'single'
         };
     }
     

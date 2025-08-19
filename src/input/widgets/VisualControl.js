@@ -57,6 +57,16 @@ export class VisualControl extends EventEmitter {
         if (!this.renderer) return false;
         
         const worldPos = this.renderer.screenToWorld(screenX, screenY);
+        
+        // Check if this control is on the canvas that was touched
+        if (this.renderer.visualToCanvas && worldPos.canvasId) {
+            const controlCanvasId = this.renderer.visualToCanvas.get(this.visual?.id);
+            
+            if (controlCanvasId && controlCanvasId !== worldPos.canvasId) {
+                return false;
+            }
+        }
+        
         const dx = worldPos.x - this.position.x;
         const dy = worldPos.y - this.position.y;
         

@@ -29,11 +29,15 @@ export class ThreeJSRenderer extends AbstractRenderer {
         
         return { 
             x: intersectPoint.x, 
-            y: intersectPoint.y 
+            y: intersectPoint.y, 
+            canvasId: 'three'
         };
     }
 
-    
+    getAllCanvases() {
+        return [this.renderer.domElement];
+    }
+        
     getCanvas() {
         return this.renderer.domElement;
     }
