@@ -19,7 +19,7 @@ export class VisualControl extends EventEmitter {
         this.renderer = options.renderer;
 
         this._position = options.position;
-        this.size = options.size || 1;
+        this._size = options.size || 1;
 
         this.visual = null;
         this.touchId = null;
@@ -40,6 +40,19 @@ export class VisualControl extends EventEmitter {
         return this._position;
     }
 
+    set size(newSize) {
+        this._size = newSize;
+        if (this.visual && this.renderer) {
+            this.renderer.updateVisual(this.visual, {
+                size: newSize
+            });
+        }
+    }
+
+    get size() {
+        return this._size;
+    }
+
     _createVisual() {
 
         if (this.renderer && this.renderer.createVisual) {
@@ -55,22 +68,48 @@ export class VisualControl extends EventEmitter {
 
     containsPoint(screenX, screenY, touchRadiusX = 0, touchRadiusY = 0) {
         if (!this.renderer) return false;
-        
-        const worldPos = this.renderer.screenToWorld(screenX, screenY);
-        
-        // Check if this control is on the canvas that was touched
-        if (this.renderer.visualToCanvas && worldPos.canvasId) {
-            const controlCanvasId = this.renderer.visualToCanvas.get(this.visual?.id);
-            
-            if (controlCanvasId && controlCanvasId !== worldPos.canvasId) {
-                return false;
+
+        // First check: if this control has a specific canvas, only respond to touches on that canvas
+        if (this.renderer.visualToCanvas && this.visual?.id) {
+            const controlCanvasId = this.renderer.visualToCanvas.get(this.visual.id);
+
+            if (controlCanvasId && this.renderer.canvases) {
+                const canvasData = this.renderer.canvases.get(controlCanvasId);
+                if (canvasData && canvasData.canvas) {
+                    const rect = canvasData.canvas.getBoundingClientRect();
+
+                    // Check if the touch point is outside this canvas's bounds
+                    if (screenX < rect.left || screenX > rect.right || 
+                        screenY < rect.top || screenY > rect.bottom) {
+                        return false;  // Touch is outside our canvas
+                    }
+
+                    // Convert to this specific canvas's coordinate system
+                    const scaleX = canvasData.canvas.width / rect.width;
+                    const scaleY = canvasData.canvas.height / rect.height;
+
+                    const worldPos = {
+                        x: (screenX - rect.left) * scaleX,
+                        y: (screenY - rect.top) * scaleY
+                    };
+
+                    const dx = worldPos.x - this.position.x;
+                    const dy = worldPos.y - this.position.y;
+
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const touchRadius = Math.max(touchRadiusX, touchRadiusY);
+
+                    return distance <= (this.size + touchRadius);
+                }
             }
         }
+
+        // Fallback if canvas-specific check isn't available
+        const worldPos = this.renderer.screenToWorld(screenX, screenY);
         
         const dx = worldPos.x - this.position.x;
         const dy = worldPos.y - this.position.y;
         
-        // Simple distance check (framework agnostic)
         const distance = Math.sqrt(dx * dx + dy * dy);
         const touchRadius = Math.max(touchRadiusX, touchRadiusY);
         

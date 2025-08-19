@@ -48,6 +48,32 @@ export class JoystickVisualControl extends VisualControl {
         return this._position;
     }
 
+    set size(newSize) {
+        this._size = newSize;
+
+        // Update base visual
+        if (this.baseVisual && this.renderer) {
+            this.renderer.updateVisual(this.baseVisual, {
+                innerRadius: newSize * 0.8,
+                outerRadius: newSize
+            });
+        }
+
+        // Update knob visual
+        if (this.knobVisual && this.renderer) {
+            this.renderer.updateVisual(this.knobVisual, {
+                radius: newSize * 0.3
+            });
+        }
+
+        // Update knob position with new size
+        this._updateKnobPosition();
+    }
+
+    get size() {
+        return this._size;
+    }
+
     _createVisual() {
         if (this.renderer && this.renderer.createVisual) {
             // Create base ring
