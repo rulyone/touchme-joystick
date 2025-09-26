@@ -48,6 +48,26 @@ export class CompositeCanvasRenderer extends AbstractRenderer {
         }
         return { x: screenX, y: screenY, canvasId: null };
     }
+
+    screenToWorldForCanvas(canvasId, screenX, screenY) {
+        const data = this.canvases.get(canvasId);
+        if (!data) {
+            return null;
+        }
+
+        const rect = data.canvas.getBoundingClientRect();
+        const scaleX = data.canvas.width / rect.width;
+        const scaleY = data.canvas.height / rect.height;
+
+        return {
+            x: (screenX - rect.left) * scaleX,
+            y: (screenY - rect.top) * scaleY,
+            canvasId,
+            withinBounds:
+                screenX >= rect.left && screenX <= rect.right &&
+                screenY >= rect.top && screenY <= rect.bottom
+        };
+    }
     
     getCanvas() {
         // Return the active canvas if set, otherwise first canvas

@@ -12,11 +12,11 @@ export class JoystickVisualControl extends VisualControl {
         this.deadzone = options.deadzone || 0.1;
         this.gateFactor = options.gateFactor || 1.1;
 
-        this.touchStartPos = { x: 0, y: 0 };
         this.currentValue = { x: 0, y: 0 };
 
         this.baseVisual = null;
         this.knobVisual = null;
+        this._activeCanvasId = null;
 
     }
 
@@ -50,7 +50,7 @@ export class JoystickVisualControl extends VisualControl {
 
     set size(newSize) {
         this._size = newSize;
-
+        
         // Update base visual
         if (this.baseVisual && this.renderer) {
             this.renderer.updateVisual(this.baseVisual, {
@@ -58,14 +58,14 @@ export class JoystickVisualControl extends VisualControl {
                 outerRadius: newSize
             });
         }
-
+        
         // Update knob visual
         if (this.knobVisual && this.renderer) {
             this.renderer.updateVisual(this.knobVisual, {
                 radius: newSize * 0.3
             });
         }
-
+        
         // Update knob position with new size
         this._updateKnobPosition();
     }
@@ -97,18 +97,20 @@ export class JoystickVisualControl extends VisualControl {
     }
 
     handleTouchStart(touch, screenX, screenY) {
-        this.touchId = touch.identifier;
+        const expectedCanvasId = this.renderer?.visualToCanvas?.get(this.baseVisual?.id);
+        const worldPos = this._getWorldPosition(screenX, screenY, expectedCanvasId);
 
-        if (this.renderer.visualToCanvas) {
-            this.myCanvasId = this.renderer.visualToCanvas.get(this.baseVisual?.id);
-            
-            // Find and store the canvas data for coordinate conversion
-            if (this.renderer.canvases && this.myCanvasId) {
-                this.myCanvasData = this.renderer.canvases.get(this.myCanvasId);
-            }
+        if (!worldPos) {
+            return;
         }
 
-        const worldPos = this.renderer.screenToWorld(screenX, screenY);
+        if (expectedCanvasId && worldPos.canvasId && worldPos.canvasId !== expectedCanvasId) {
+            return;
+        }
+
+        this.touchId = touch.identifier;
+        this._activeCanvasId = expectedCanvasId || worldPos.canvasId || null;
+
         const offsetX = worldPos.x - this.position.x;
         const offsetY = worldPos.y - this.position.y;
 
@@ -145,7 +147,6 @@ export class JoystickVisualControl extends VisualControl {
             });
         }
 
-        this.touchStartPos = { x: screenX, y: screenY };
         this.isActive = true;
     }
 
@@ -184,20 +185,11 @@ export class JoystickVisualControl extends VisualControl {
     handleTouchMove(touch, screenX, screenY) {
         if (this.touchId !== touch.identifier) return;
 
-        let worldPos;
+        const targetCanvasId = this._activeCanvasId || this.renderer?.visualToCanvas?.get(this.baseVisual?.id);
+        const worldPos = this._getWorldPosition(screenX, screenY, targetCanvasId);
 
-        // If we have canvas data, always use it for coordinate conversion
-        if (this.myCanvasData) {
-            const rect = this.myCanvasData.canvas.getBoundingClientRect();
-            const scaleX = this.myCanvasData.canvas.width / rect.width;
-            const scaleY = this.myCanvasData.canvas.height / rect.height;
-            
-            worldPos = {
-                x: (screenX - rect.left) * scaleX,
-                y: (screenY - rect.top) * scaleY
-            };
-        } else {
-            worldPos = this.renderer.screenToWorld(screenX, screenY);
+        if (!worldPos) {
+            return;
         }
 
         const offsetX = worldPos.x - this.position.x;
@@ -250,6 +242,7 @@ export class JoystickVisualControl extends VisualControl {
             this.touchId = null;
             this.isActive = false;
             this.currentValue = { x: 0, y: 0 };
+            this._activeCanvasId = null;
 
             this._updateKnobPosition();
 
@@ -314,6 +307,17 @@ export class JoystickVisualControl extends VisualControl {
         this.currentValue.x = x;
         this.currentValue.y = y;
         this._updateKnobPosition();
+    }
+
+    _getWorldPosition(screenX, screenY, canvasId) {
+        if (canvasId && typeof this.renderer?.screenToWorldForCanvas === 'function') {
+            const pos = this.renderer.screenToWorldForCanvas(canvasId, screenX, screenY);
+            if (pos) {
+                return pos;
+            }
+        }
+
+        return this.renderer?.screenToWorld?.(screenX, screenY) || null;
     }
 
     dispose() {

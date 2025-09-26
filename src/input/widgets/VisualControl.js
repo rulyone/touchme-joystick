@@ -68,45 +68,28 @@ export class VisualControl extends EventEmitter {
 
     containsPoint(screenX, screenY, touchRadiusX = 0, touchRadiusY = 0) {
         if (!this.renderer) return false;
+        const controlCanvasId = this.renderer.visualToCanvas?.get(this.visual?.id);
 
-        // First check: if this control has a specific canvas, only respond to touches on that canvas
-        if (this.renderer.visualToCanvas && this.visual?.id) {
-            const controlCanvasId = this.renderer.visualToCanvas.get(this.visual.id);
-
-            if (controlCanvasId && this.renderer.canvases) {
-                const canvasData = this.renderer.canvases.get(controlCanvasId);
-                if (canvasData && canvasData.canvas) {
-                    const rect = canvasData.canvas.getBoundingClientRect();
-
-                    // Check if the touch point is outside this canvas's bounds
-                    if (screenX < rect.left || screenX > rect.right || 
-                        screenY < rect.top || screenY > rect.bottom) {
-                        return false;  // Touch is outside our canvas
-                    }
-
-                    // Convert to this specific canvas's coordinate system
-                    const scaleX = canvasData.canvas.width / rect.width;
-                    const scaleY = canvasData.canvas.height / rect.height;
-
-                    const worldPos = {
-                        x: (screenX - rect.left) * scaleX,
-                        y: (screenY - rect.top) * scaleY
-                    };
-
-                    const dx = worldPos.x - this.position.x;
-                    const dy = worldPos.y - this.position.y;
-
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    const touchRadius = Math.max(touchRadiusX, touchRadiusY);
-
-                    return distance <= (this.size + touchRadius);
-                }
+        let worldPos = null;
+        if (controlCanvasId && typeof this.renderer.screenToWorldForCanvas === 'function') {
+            worldPos = this.renderer.screenToWorldForCanvas(controlCanvasId, screenX, screenY);
+            if (worldPos && worldPos.withinBounds === false) {
+                return false;
             }
         }
 
-        // Fallback if canvas-specific check isn't available
-        const worldPos = this.renderer.screenToWorld(screenX, screenY);
-        
+        if (!worldPos) {
+            worldPos = this.renderer.screenToWorld(screenX, screenY);
+
+            if (controlCanvasId && worldPos.canvasId && worldPos.canvasId !== controlCanvasId) {
+                return false;
+            }
+        }
+
+        if (!worldPos) {
+            return false;
+        }
+
         const dx = worldPos.x - this.position.x;
         const dy = worldPos.y - this.position.y;
         
